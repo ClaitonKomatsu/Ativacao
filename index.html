@@ -3,416 +3,660 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Consulta de Base (Firebase)</title>
+    <title>Controle de Chamados Técnicos (Realtime DB)</title>
+    <!-- Incluindo Tailwind CSS para um design moderno e responsivo -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Importando ícones (Font Awesome) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Importando o ícone da aplicação -->
+    <link rel="icon" href="https://placehold.co/32x32/1e40af/ffffff?text=C" type="image/png">
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body {
             font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
         }
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #555; }
-        .table-container { max-height: calc(100vh - 300px); overflow-y: auto; }
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
+        input, select, button, textarea {
+            transition: all 0.2s ease-in-out;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
         }
+        .form-section {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .form-fieldset {
+            border-top: 1px solid #e5e7eb;
+            padding-top: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        /* Oculta o botão de cancelar por padrão */
+        #cancel-edit-button { display: none; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body class="antialiased text-gray-800">
 
-    <div class="container mx-auto p-4 md:p-8">
-        
-        <header class="mb-8 text-center">
-            <h1 class="text-3xl md:text-4xl font-bold text-red-600">CONSULTA ESTOQUE</h1>
+    <!-- Container Principal -->
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl relative">
+        <!-- BOTÃO DE ATIVAÇÃO -->
+        <button id="activation-button" class="absolute top-4 left-4 md:top-8 md:left-8 bg-red-600 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:bg-red-700 transition-colors">
+            ATIVAÇÃO
+        </button>
+        <!-- BOTÃO DE SUPORTE -->
+        <a href="https://homexbr.notion.site/Homex-Suporte-Tecnico-6e271639fd524a40ba189348aeabacbe" target="_blank" rel="noopener noreferrer" class="absolute top-4 right-4 md:top-8 md:right-8 bg-red-600 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:bg-red-700 transition-colors">
+            SUPORTE
+        </a>
+
+        <header class="mb-8 text-center pt-12">
+             <!-- LOGOTIPO -->
+            <div class="mb-6">
+                <h1 class="text-5xl font-bold text-gray-800" style="font-family: 'Arial Black', sans-serif;">Homex<span class="text-2xl align-super">®</span></h1>
+                <p class="text-sm tracking-widest text-gray-600">DISTRIBUIDORA</p>
+            </div>
+             <!-- TÍTULO PRINCIPAL ALTERADO -->
+            <h1 class="text-3xl md:text-4xl font-bold text-red-600 uppercase">CONTROLE DE CHAMADOS</h1>
         </header>
 
-        <!-- Seção de Ações e Filtros -->
-        <div class="bg-white p-6 rounded-xl shadow-md mb-8 space-y-4">
-            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
-                <div class="relative w-full md:flex-grow">
-                    <svg class="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                    <input type="text" id="searchInput" placeholder="Pesquisar em toda a base..." class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow" disabled>
-                </div>
-                <div class="flex items-center gap-4 w-full md:w-auto">
-                    <input type="file" id="csvFileInput" class="hidden" accept=".csv,.txt">
-                    <button id="importButton" class="w-full md:w-auto bg-blue-600 text-white font-bold py-3 px-5 rounded-lg hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
-                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
-                        Importar CSV
-                    </button>
-                    <span id="rowCount" class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full whitespace-nowrap">0 Registros</span>
-                </div>
-            </div>
-            <div class="flex flex-col md:flex-row items-center gap-4">
-                <div class="w-full md:w-1/2">
-                    <label for="produtoFilter" class="block text-sm font-medium text-gray-700 mb-1">Filtrar por Produto</label>
-                    <select id="produtoFilter" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" disabled>
-                        <option value="">Todos os Produtos</option>
-                    </select>
-                </div>
-                <div class="w-full md:w-1/2">
-                    <label for="statusFilter" class="block text-sm font-medium text-gray-700 mb-1">Filtrar por Status</label>
-                    <select id="statusFilter" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" disabled>
-                        <option value="">Todos os Status</option>
-                    </select>
-                </div>
-            </div>
-            <div id="importStatus" class="text-sm text-center md:text-left text-gray-600 h-5"></div>
-        </div>
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Seção do Formulário (Coluna 1) -->
+            <div class="lg:col-span-1">
+                <div id="form-container" class="form-section sticky top-8">
+                    <h2 id="form-title" class="text-2xl font-semibold mb-6 border-b pb-4">Registrar Chamado</h2>
+                    <form id="service-call-form" class="space-y-4">
+                        <input type="hidden" id="edit-call-id">
 
-        <!-- Tabela de Dados -->
-        <div id="tableWrapper" class="bg-white rounded-xl shadow-md overflow-hidden hidden">
-            <div class="table-container">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-100 sticky top-0 z-10">
-                        <tr>
-                            <!-- Cabeçalhos da Tabela -->
-                        </tr>
-                    </thead>
-                    <tbody id="dataTable" class="bg-white divide-y divide-gray-200">
-                        <!-- Linhas da Tabela -->
-                    </tbody>
-                </table>
+                        <div>
+                            <label for="call-number" class="block text-sm font-medium text-gray-700">Número do Chamado</label>
+                            <input type="text" id="call-number" disabled class="mt-1 block w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md shadow-sm">
+                        </div>
+
+                        <div class="space-y-4 form-fieldset">
+                             <h3 class="text-lg font-medium text-gray-800">Dados do Cliente</h3>
+                             <div>
+                                <label for="client-name" class="block text-sm font-medium text-gray-700">Nome do Cliente</label>
+                                <input type="text" id="client-name" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                             <div>
+                                <label for="client-phone" class="block text-sm font-medium text-gray-700">Telefone</label>
+                                <input type="tel" id="client-phone" placeholder="(99) 99999-9999" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                             <div>
+                                <label for="client-address" class="block text-sm font-medium text-gray-700">Endereço</label>
+                                <input type="text" id="client-address" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                        </div>
+
+                        <div class="space-y-4 form-fieldset">
+                            <h3 class="text-lg font-medium text-gray-800">Dados do Produto e Serviço</h3>
+                             <div>
+                                <label for="service-type" class="block text-sm font-medium text-gray-700">Tipo de Atendimento</label>
+                                <select id="service-type" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="Instalação">Instalação</option>
+                                    <option value="Garantia">Garantia</option>
+                                    <option value="Suporte">Suporte</option>
+                                    <option value="Avulso">Avulso</option>
+                                    <option value="Outros">Outros</option>
+                                </select>
+                            </div>
+                             <div>
+                                <label for="service-status" class="block text-sm font-medium text-gray-700">Status do Chamado</label>
+                                <select id="service-status" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="Aberto">Aberto</option>
+                                    <option value="Agendado">Agendado</option>
+                                    <option value="Atendido">Atendido</option>
+                                    <option value="Cancelado">Cancelado</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="technician-name" class="block text-sm font-medium text-gray-700">Nome do Técnico</label>
+                                <input type="text" id="technician-name" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label for="lock-model" class="block text-sm font-medium text-gray-700">Modelo da Fechadura</label>
+                                <select id="lock-model" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="101">101</option>
+                                    <option value="210">210</option>
+                                    <option value="303">303</option>
+                                    <option value="5100">5100</option>
+                                    <option value="608">608</option>
+                                    <option value="610">610</option>
+                                    <option value="709">709</option>
+                                    <option value="801">801</option>
+                                    <option value="9300">9300</option>
+                                    <option value="Alpha">Alpha</option>
+                                    <option value="Alpha.VP">Alpha.VP</option>
+                                    <option value="Outra">Outra</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="serial-number" class="block text-sm font-medium text-gray-700">Serial Number (SN)</label>
+                                <input type="text" id="serial-number" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label for="purchase-date" class="block text-sm font-medium text-gray-700">Data da Compra</label>
+                                <input type="date" id="purchase-date" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label for="store" class="block text-sm font-medium text-gray-700">Loja</label>
+                                <input type="text" id="store" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label for="request-date" class="block text-sm font-medium text-gray-700">Data da Solicitação</label>
+                                <input type="date" id="request-date" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label for="schedule-date" class="block text-sm font-medium text-gray-700">Data do Agendamento</label>
+                                <input type="date" id="schedule-date" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label for="obs-pre" class="block text-sm font-medium text-gray-700">Observações (Pré-atendimento)</label>
+                                <textarea id="obs-pre" rows="3" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+                            </div>
+                            <div>
+                                <label for="execution-date" class="block text-sm font-medium text-gray-700">Data da Execução</label>
+                                <input type="date" id="execution-date" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label for="obs-post" class="block text-sm font-medium text-gray-700">Observações (Pós-atendimento)</label>
+                                <textarea id="obs-post" rows="3" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+                            </div>
+                            <div>
+                                <label for="customer-value" class="block text-sm font-medium text-gray-700">Valor a Pagar (Cliente)</label>
+                                <input type="number" id="customer-value" step="0.01" min="0" placeholder="R$ 0,00" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label for="provider-value" class="block text-sm font-medium text-gray-700">Valor a Pagar (Prestador)</label>
+                                <input type="number" id="provider-value" step="0.01" min="0" placeholder="R$ 0,00" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                             <div>
+                                <label for="settlement-date" class="block text-sm font-medium text-gray-700">Data da Quitação</label>
+                                <input type="date" id="settlement-date" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                        </div>
+                        <div class="flex flex-col space-y-2 !mt-8">
+                            <button type="submit" id="submit-button" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                Salvar Chamado
+                            </button>
+                            <button type="button" id="cancel-edit-button" class="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                Cancelar Edição
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
-        </div>
-        
-        <!-- Mensagens para o usuário -->
-        <div id="loaderContainer" class="text-center p-16 bg-white rounded-xl shadow-md">
-            <div class="loader mx-auto"></div>
-            <h3 class="text-xl font-semibold text-gray-700 mt-4">Carregando dados do Firebase...</h3>
-        </div>
-        <div id="noResults" class="hidden text-center p-16 bg-white rounded-xl shadow-md">
-            <h3 class="text-xl font-semibold text-gray-700">Nenhum resultado encontrado</h3>
-            <p class="text-gray-500 mt-2">Tente ajustar seus termos de pesquisa.</p>
-        </div>
-         <div id="errorContainer" class="hidden p-4 md:p-8">
-            <div class="bg-red-50 border-l-4 border-red-400 p-6 rounded-r-lg shadow-lg">
-                <div class="flex">
-                    <div class="py-1">
-                        <svg class="h-8 w-8 text-red-500 mr-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
+
+            <!-- Seção da Lista de Chamados (Coluna 2) -->
+            <div class="lg:col-span-2">
+                 <div class="mb-6 bg-white p-4 rounded-lg shadow">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Consultar Chamados</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <input type="text" id="search-input" placeholder="Buscar por nº, nome, técnico ou S/N..." class="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        <select id="filter-status" class="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <option value="Todos">Todos os Status</option>
+                            <option value="Aberto">Aberto</option>
+                            <option value="Agendado">Agendado</option>
+                            <option value="Atendido">Atendido</option>
+                            <option value="Cancelado">Cancelado</option>
+                        </select>
                     </div>
-                    <div>
-                        <h3 id="errorTitle" class="text-xl font-bold text-red-800 mb-2"></h3>
-                        <div id="errorMessage" class="text-red-700"></div>
-                        <button id="reloadButton" class="hidden mt-6 bg-red-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-red-700 transition-all">
-                            Tentar Novamente
+                    <!-- FILTRO POR DATA DE QUITAÇÃO -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 pt-4 border-t">
+                        <div>
+                            <label for="settlement-date-start" class="block text-sm font-medium text-gray-700">Quitação de:</label>
+                            <input type="date" id="settlement-date-start" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label for="settlement-date-end" class="block text-sm font-medium text-gray-700">Até:</label>
+                            <input type="date" id="settlement-date-end" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    </div>
+                     <!-- BOTÃO DE EXPORTAR -->
+                    <div class="mt-4 pt-4 border-t">
+                         <button id="export-csv-button" class="w-full flex justify-center items-center gap-2 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                            <i class="fas fa-file-csv"></i>
+                            Exportar para CSV
                         </button>
                     </div>
+                 </div>
+                 
+                 <!-- SOMA DOS TOTAIS FILTRADOS -->
+                 <div id="filtered-totals" class="hidden mb-6 bg-blue-100 p-4 rounded-lg shadow text-center">
+                    <h3 class="text-lg font-semibold text-blue-900 mb-2">Totais da Consulta</h3>
+                    <div class="flex justify-around">
+                        <div class="text-green-700">
+                            <span class="font-medium block text-sm text-gray-600">Total Cliente</span>
+                            <strong id="total-customer" class="text-xl">R$ 0,00</strong>
+                        </div>
+                        <div class="text-red-700">
+                            <span class="font-medium block text-sm text-gray-600">Total Prestador</span>
+                            <strong id="total-provider" class="text-xl">R$ 0,00</strong>
+                        </div>
+                    </div>
+                 </div>
+
+                 <h2 class="text-2xl font-semibold mb-6 text-gray-900">Chamados Registrados</h2>
+                 <div id="loading-state" class="text-center p-8">
+                     <p class="text-gray-500">Carregando chamados...</p>
+                 </div>
+                 <div id="service-calls-list" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 </div>
+                 <div id="empty-state" class="hidden text-center p-10 border-2 border-dashed rounded-lg mt-6">
+                    <p class="text-gray-500">Nenhum chamado encontrado.</p>
                 </div>
             </div>
-        </div>
-
+        </main>
     </div>
 
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <!-- Script para interagir com o Firebase -->
+    <script type="module">
+        // =================================================================================
+        // 1. CONFIGURAÇÃO E INICIALIZAÇÃO DO FIREBASE
+        // =================================================================================
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getDatabase, ref, push, onValue, update, remove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-    <script>
-        // Configuração do Firebase
         const firebaseConfig = {
-            apiKey: "AIzaSyDsiI130RSOnVwo9e-F5KdeXTpdTyFgSU0",
-            authDomain: "ativacao-130b1.firebaseapp.com",
-            databaseURL: "https://ativacao-130b1-default-rtdb.firebaseio.com",
-            projectId: "ativacao-130b1",
-            storageBucket: "ativacao-130b1.firebasestorage.app",
-            messagingSenderId: "114273965113",
-            appId: "1:114273965113:web:c8b9f04fb9084a4f0f69e8",
-            measurementId: "G-DMLKB7T84D"
+            apiKey: "AIzaSyCMATq-iNDjKNUXQhzdZgtKay4HOgK_m7Q",
+            authDomain: "controle-de-chamados-tecnicos.firebaseapp.com",
+            projectId: "controle-de-chamados-tecnicos",
+            storageBucket: "controle-de-chamados-tecnicos.firebasestorage.app",
+            messagingSenderId: "884804211370",
+            appId: "1:884804211370:web:e08d61e3824165110e76d3",
+            measurementId: "G-J8Z060J1S9"
         };
 
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-
-        let originalData = [];
-        const fixedHeaders = ['PRODUTO', 'SERIAL', 'ATIVAÇÃO', 'STATUS', 'DATA', 'NF', 'OBSERVAÇÃO'];
-        let sortColumn = null;
-        let sortDirection = 'asc';
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const auth = getAuth(app);
         
-        const searchInput = document.getElementById('searchInput');
-        const produtoFilter = document.getElementById('produtoFilter');
-        const statusFilter = document.getElementById('statusFilter');
-        const tableWrapper = document.getElementById('tableWrapper');
-        const loaderContainer = document.getElementById('loaderContainer');
-        const noResultsDiv = document.getElementById('noResults');
-        const errorContainer = document.getElementById('errorContainer');
-        const errorTitleEl = document.getElementById('errorTitle');
-        const errorMessageEl = document.getElementById('errorMessage');
-        const reloadButton = document.getElementById('reloadButton');
-        const importButton = document.getElementById('importButton');
-        const csvFileInput = document.getElementById('csvFileInput');
-        const importStatus = document.getElementById('importStatus');
+        // =================================================================================
+        // 2. ESTADO DA APLICAÇÃO E REFERÊNCIAS DO DOM
+        // =================================================================================
+        let allCallsData = {};
+        let currentFilteredData = {};
+        const form = document.getElementById('service-call-form');
+        const callsList = document.getElementById('service-calls-list');
+        const loadingState = document.getElementById('loading-state');
+        const emptyState = document.getElementById('empty-state');
+        const submitButton = document.getElementById('submit-button');
+        const cancelEditButton = document.getElementById('cancel-edit-button');
+        const searchInput = document.getElementById('search-input');
+        const filterStatus = document.getElementById('filter-status');
+        const settlementDateStart = document.getElementById('settlement-date-start');
+        const settlementDateEnd = document.getElementById('settlement-date-end');
+        const filteredTotalsDiv = document.getElementById('filtered-totals');
+        const totalCustomerEl = document.getElementById('total-customer');
+        const totalProviderEl = document.getElementById('total-provider');
+        const formTitle = document.getElementById('form-title');
+        const callNumberInput = document.getElementById('call-number');
+        const clientPhoneInput = document.getElementById('client-phone');
+        const exportCsvButton = document.getElementById('export-csv-button');
+        const activationButton = document.getElementById('activation-button');
+        
+        // =================================================================================
+        // 3. AUTENTICAÇÃO E BUSCA DE DADOS
+        // =================================================================================
+        onAuthStateChanged(auth, user => {
+            if (user) fetchServiceCalls();
+            else signInAnonymously(auth).catch(err => console.error("Auth Error:", err));
+        });
+        
+        function fetchServiceCalls() {
+            const callsRef = ref(db, 'service_calls');
+            onValue(callsRef, snapshot => {
+                loadingState.style.display = 'none';
+                allCallsData = snapshot.exists() ? snapshot.val() : {};
+                setNextCallNumber();
+                renderFilteredCalls();
+            }, err => {
+                 console.error("Fetch Error:", err);
+                 loadingState.innerHTML = '<p class="text-red-500">Erro ao carregar dados.</p>';
+            });
+        }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            fetchDataFromFirebase();
-            searchInput.addEventListener('input', applyAllFilters);
-            produtoFilter.addEventListener('change', applyAllFilters);
-            statusFilter.addEventListener('change', applyAllFilters);
-            reloadButton.addEventListener('click', () => location.reload());
-            importButton.addEventListener('click', () => csvFileInput.click());
-            csvFileInput.addEventListener('change', handleFileImport);
+        // =================================================================================
+        // 4. FUNÇÕES DE MANIPULAÇÃO DE DADOS (CRUD)
+        // =================================================================================
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            const callId = document.getElementById('edit-call-id').value;
+            const callData = {
+                callNumber: document.getElementById('call-number').value,
+                clientName: document.getElementById('client-name').value,
+                clientPhone: document.getElementById('client-phone').value,
+                clientAddress: document.getElementById('client-address').value,
+                technicianName: document.getElementById('technician-name').value,
+                lockModel: document.getElementById('lock-model').value,
+                serialNumber: document.getElementById('serial-number').value,
+                purchaseDate: document.getElementById('purchase-date').value,
+                store: document.getElementById('store').value,
+                requestDate: document.getElementById('request-date').value,
+                scheduleDate: document.getElementById('schedule-date').value,
+                obsPre: document.getElementById('obs-pre').value,
+                executionDate: document.getElementById('execution-date').value,
+                obsPost: document.getElementById('obs-post').value,
+                serviceType: document.getElementById('service-type').value,
+                serviceStatus: document.getElementById('service-status').value,
+                customerValue: document.getElementById('customer-value').value,
+                providerValue: document.getElementById('provider-value').value,
+                settlementDate: document.getElementById('settlement-date').value,
+                createdAt: allCallsData[callId]?.createdAt || new Date().toISOString()
+            };
+
+            submitButton.disabled = true;
+            submitButton.textContent = 'Salvando...';
+
+            try {
+                if (callId) { // MODO EDIÇÃO
+                    await update(ref(db, `service_calls/${callId}`), callData);
+                } else { // MODO CRIAÇÃO
+                    await push(ref(db, 'service_calls'), callData);
+                }
+                exitEditMode();
+            } catch (error) {
+                console.error("Save/Update Error:", error);
+                alert("Erro ao salvar os dados.");
+            } finally {
+                submitButton.disabled = false;
+            }
+        }
+
+        async function deleteServiceCall(callId) {
+            const password = prompt("Para excluir, digite a senha de autorização:");
+            if (password === null) {
+                return; // Usuário cancelou
+            }
+
+            if (password === "Homex") {
+                if (confirm('Tem certeza que deseja excluir este chamado? Esta ação não pode ser desfeita.')) {
+                    try {
+                        await remove(ref(db, `service_calls/${callId}`));
+                        console.log("Chamado excluído com sucesso.");
+                    } catch (error) {
+                        console.error("Delete Error:", error);
+                        alert("Erro ao excluir o chamado.");
+                    }
+                }
+            } else {
+                alert("Senha incorreta. A exclusão foi cancelada.");
+            }
+        }
+        
+        // =================================================================================
+        // 5. FUNÇÕES PARA MANIPULAR A INTERFACE (UI)
+        // =================================================================================
+        
+        function calculateNextCallNumber() {
+            const existingNumbers = Object.values(allCallsData).map(call => parseInt(call.callNumber)).filter(Boolean);
+            if (existingNumbers.length === 0) {
+                return 1000;
+            }
+            return Math.max(...existingNumbers) + 1;
+        }
+
+        function setNextCallNumber() {
+            if (!document.getElementById('edit-call-id').value) {
+                callNumberInput.value = calculateNextCallNumber();
+            }
+        }
+
+        function enterEditMode(callId) {
+            const call = allCallsData[callId];
+            if (!call) return;
+            
+            form.reset();
+            document.getElementById('edit-call-id').value = callId;
+            callNumberInput.value = call.callNumber || '';
+            document.getElementById('client-name').value = call.clientName || '';
+            document.getElementById('client-phone').value = call.clientPhone || '';
+            document.getElementById('client-address').value = call.clientAddress || '';
+            document.getElementById('service-type').value = call.serviceType || 'Instalação';
+            document.getElementById('service-status').value = call.serviceStatus || 'Aberto';
+            document.getElementById('technician-name').value = call.technicianName || '';
+            document.getElementById('lock-model').value = call.lockModel || 'Alpha';
+            document.getElementById('serial-number').value = call.serialNumber || '';
+            document.getElementById('purchase-date').value = call.purchaseDate || '';
+            document.getElementById('store').value = call.store || '';
+            document.getElementById('request-date').value = call.requestDate || '';
+            document.getElementById('schedule-date').value = call.scheduleDate || '';
+            document.getElementById('obs-pre').value = call.obsPre || '';
+            document.getElementById('execution-date').value = call.executionDate || '';
+            document.getElementById('obs-post').value = call.obsPost || '';
+            document.getElementById('customer-value').value = call.customerValue || '';
+            document.getElementById('provider-value').value = call.providerValue || '';
+            document.getElementById('settlement-date').value = call.settlementDate || '';
+
+            formTitle.textContent = 'Editando Chamado';
+            submitButton.textContent = 'Atualizar Chamado';
+            cancelEditButton.style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function exitEditMode() {
+            form.reset();
+            document.getElementById('edit-call-id').value = '';
+            setNextCallNumber();
+            formTitle.textContent = 'Registrar Chamado';
+            submitButton.textContent = 'Salvar Chamado';
+            cancelEditButton.style.display = 'none';
+        }
+
+        function renderFilteredCalls() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const selectedStatus = filterStatus.value;
+            const startDate = settlementDateStart.value;
+            const endDate = settlementDateEnd.value;
+
+            let filteredEntries = Object.entries(allCallsData);
+
+            if (selectedStatus !== 'Todos') {
+                filteredEntries = filteredEntries.filter(([, call]) => call.serviceStatus === selectedStatus);
+            }
+
+            if (startDate) {
+                filteredEntries = filteredEntries.filter(([, call]) => call.settlementDate && call.settlementDate >= startDate);
+            }
+
+            if (endDate) {
+                filteredEntries = filteredEntries.filter(([, call]) => call.settlementDate && call.settlementDate <= endDate);
+            }
+
+            if (searchTerm) {
+                 filteredEntries = filteredEntries.filter(([, call]) => 
+                    (call.callNumber || '').toString().toLowerCase().includes(searchTerm) ||
+                    (call.clientName || '').toLowerCase().includes(searchTerm) ||
+                    (call.serialNumber || '').toLowerCase().includes(searchTerm) ||
+                    (call.technicianName || '').toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            currentFilteredData = Object.fromEntries(filteredEntries);
+            displayCalls(currentFilteredData);
+            calculateAndDisplayTotals(currentFilteredData);
+        }
+        
+        function calculateAndDisplayTotals(callsObject) {
+            const totalCustomer = Object.values(callsObject).reduce((sum, call) => sum + (parseFloat(call.customerValue) || 0), 0);
+            const totalProvider = Object.values(callsObject).reduce((sum, call) => sum + (parseFloat(call.providerValue) || 0), 0);
+            
+            const formatCurrency = (value) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+            totalCustomerEl.textContent = formatCurrency(totalCustomer);
+            totalProviderEl.textContent = formatCurrency(totalProvider);
+            
+            const hasFilters = searchInput.value || filterStatus.value !== 'Todos' || settlementDateStart.value || settlementDateEnd.value;
+            
+            if (hasFilters && Object.keys(callsObject).length > 0) {
+                 filteredTotalsDiv.classList.remove('hidden');
+            } else {
+                 filteredTotalsDiv.classList.add('hidden');
+            }
+        }
+
+        function displayCalls(callsObject) {
+            callsList.innerHTML = ''; 
+            const hasCalls = Object.keys(callsObject).length > 0;
+            emptyState.style.display = hasCalls ? 'none' : 'block';
+            if (!hasCalls) {
+                 emptyState.innerHTML = (searchInput.value || filterStatus.value !== 'Todos' || settlementDateStart.value || settlementDateEnd.value)
+                    ? `<p class="text-gray-500">Nenhum resultado para os filtros aplicados.</p>`
+                    : `<p class="text-gray-500">Nenhum chamado registrado ainda.</p>`;
+            }
+
+            const statusColors = {
+                'Aberto': 'bg-red-100 text-red-800',
+                'Agendado': 'bg-yellow-100 text-yellow-800',
+                'Atendido': 'bg-green-100 text-green-800',
+                'Cancelado': 'bg-gray-800 text-white'
+            };
+            
+            const formatDate = (dateString) => {
+                if (!dateString) return 'N/A';
+                const [year, month, day] = dateString.split('-');
+                return `${day}/${month}/${year}`;
+            };
+            
+            const formatCurrency = (value) => (parseFloat(value) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+            for (const callId in callsObject) {
+                const call = callsObject[callId];
+                const card = document.createElement('div');
+                card.className = 'card p-5 space-y-3 flex flex-col';
+                card.setAttribute('data-id', callId);
+
+                const statusColorClass = statusColors[call.serviceStatus] || 'bg-gray-100 text-gray-800';
+                
+                const formatObs = (text) => text ? `<p class="text-gray-600 italic">"${text}"</p>` : '<p class="text-gray-400 italic">N/A</p>';
+
+                card.innerHTML = `
+                    <div class="flex-grow">
+                        <div class="flex justify-between items-start mb-3">
+                             <h3 class="font-bold text-lg text-blue-800">#${call.callNumber || 'N/A'} - ${call.clientName || ''}</h3>
+                            <span class="text-xs font-medium px-2.5 py-1 rounded-full ${statusColorClass}">${call.serviceStatus || ''}</span>
+                        </div>
+                        <div class="border-t pt-3 space-y-2 text-sm">
+                            <p><strong class="font-medium text-gray-600">Telefone:</strong> ${call.clientPhone || 'N/A'}</p>
+                            <p><strong class="font-medium text-gray-600">Endereço:</strong> ${call.clientAddress || 'N/A'}</p>
+                            <p><strong class="font-medium text-gray-600">Técnico:</strong> ${call.technicianName || 'N/A'}</p>
+                        </div>
+                        <div class="border-t pt-3 mt-3 space-y-2 text-sm">
+                            <p><strong class="font-medium text-gray-600">Modelo:</strong> ${call.lockModel || 'N/A'}</p>
+                            <p><strong class="font-medium text-gray-600">S/N:</strong> ${call.serialNumber || 'N/A'}</p>
+                            <p><strong class="font-medium text-gray-600">Loja:</strong> ${call.store || 'N/A'}</p>
+                            <p><strong class="font-medium text-gray-600">Data Compra:</strong> ${formatDate(call.purchaseDate)}</p>
+                            <p><strong class="font-medium text-gray-600">Solicitação:</strong> ${formatDate(call.requestDate)}</p>
+                            <p><strong class="font-medium text-gray-600">Agendamento:</strong> ${formatDate(call.scheduleDate)}</p>
+                            <div class="pl-2 border-l-2">
+                                <strong class="font-medium text-gray-600 text-xs">OBS (Pré):</strong>
+                                ${formatObs(call.obsPre)}
+                            </div>
+                            <p><strong class="font-medium text-gray-600">Execução:</strong> ${formatDate(call.executionDate)}</p>
+                            <div class="pl-2 border-l-2">
+                                <strong class="font-medium text-gray-600 text-xs">OBS (Pós):</strong>
+                                ${formatObs(call.obsPost)}
+                            </div>
+                            <p><strong class="font-medium text-gray-600">Quitação:</strong> ${formatDate(call.settlementDate)}</p>
+                        </div>
+                    </div>
+                    <div class="border-t pt-3 mt-3 flex justify-between items-center text-sm">
+                        <div class="flex space-x-4">
+                            <div class="text-green-700">
+                                <span class="font-medium block text-xs text-gray-500">Cliente Paga</span>
+                                <strong>${formatCurrency(call.customerValue)}</strong>
+                            </div>
+                            <div class="text-red-700">
+                                <span class="font-medium block text-xs text-gray-500">Prestador Recebe</span>
+                                <strong>${formatCurrency(call.providerValue)}</strong>
+                            </div>
+                        </div>
+                        <div class="flex space-x-3">
+                            <button title="Editar" class="edit-btn text-gray-500 hover:text-blue-600" data-id="${callId}"><i class="fas fa-pencil-alt"></i></button>
+                            <button title="Excluir" class="delete-btn text-gray-500 hover:text-red-600" data-id="${callId}"><i class="fas fa-trash-alt"></i></button>
+                        </div>
+                    </div>
+                `;
+                callsList.appendChild(card);
+            }
+        }
+        
+        function exportToCSV() {
+            const calls = Object.values(currentFilteredData);
+            if (calls.length === 0) {
+                alert("Nenhum dado para exportar. Por favor, ajuste seus filtros.");
+                return;
+            }
+
+            const headers = [
+                "Nº Chamado", "Status", "Nome Cliente", "Telefone", "Endereço", "Técnico", "Modelo", "S/N", "Loja", "Data Compra",
+                "Data Solicitação", "Data Agendamento", "Data Execução", "Data Quitação", 
+                "OBS Pré", "OBS Pós", "Tipo Atendimento", "Valor Cliente (R$)", "Valor Prestador (R$)"
+            ];
+
+            const escapeCsvCell = (cell) => {
+                if (cell === null || cell === undefined) return '';
+                const str = String(cell);
+                if (str.includes(',')) return `"${str}"`;
+                return str;
+            };
+
+            const rows = calls.map(call => [
+                call.callNumber, call.serviceStatus, call.clientName, call.clientPhone, call.clientAddress,
+                call.technicianName, call.lockModel, call.serialNumber, call.store, call.purchaseDate,
+                call.requestDate, call.scheduleDate, call.executionDate, call.settlementDate,
+                call.obsPre, call.obsPost, call.serviceType,
+                (parseFloat(call.customerValue) || 0).toFixed(2), (parseFloat(call.providerValue) || 0).toFixed(2)
+            ].map(escapeCsvCell).join(','));
+
+            const csvContent = "data:text/csv;charset=utf-8," + headers.join(',') + '\n' + rows.join('\n');
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "relatorio_chamados.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function handleActivationClick() {
+            const password = prompt("Para acessar, digite a senha de autorização:");
+            if (password === "Philips") {
+                window.open('https://claitonkomatsu.github.io/Ativacao/', '_blank');
+            } else if (password !== null) {
+                alert("Senha incorreta.");
+            }
+        }
+
+        // =================================================================================
+        // 6. EVENT LISTENERS
+        // =================================================================================
+        form.addEventListener('submit', handleFormSubmit);
+        cancelEditButton.addEventListener('click', exitEditMode);
+        searchInput.addEventListener('input', renderFilteredCalls);
+        filterStatus.addEventListener('change', renderFilteredCalls);
+        settlementDateStart.addEventListener('change', renderFilteredCalls);
+        settlementDateEnd.addEventListener('change', renderFilteredCalls);
+        exportCsvButton.addEventListener('click', exportToCSV);
+        activationButton.addEventListener('click', handleActivationClick);
+
+        callsList.addEventListener('click', (e) => {
+            const editButton = e.target.closest('.edit-btn');
+            const deleteButton = e.target.closest('.delete-btn');
+            if (editButton) enterEditMode(editButton.dataset.id);
+            if (deleteButton) deleteServiceCall(deleteButton.dataset.id);
         });
 
-        function fetchDataFromFirebase() {
-            const dataRef = database.ref('clientes'); 
-            dataRef.on('value', (snapshot) => {
-                loaderContainer.classList.add('hidden');
-                const data = snapshot.val();
-                if (data) {
-                    originalData = Array.isArray(data) ? data : Object.values(data);
-                    
-                    if (originalData.length > 0) {
-                        populateFilters(originalData);
-                        applyAllFilters();
-                        searchInput.disabled = false;
-                        produtoFilter.disabled = false;
-                        statusFilter.disabled = false;
-                        tableWrapper.classList.remove('hidden');
-                        errorContainer.classList.add('hidden');
-                    } else {
-                        showError("Banco de dados vazio", "O nó 'clientes' existe mas não contém registros. Use o botão 'Importar CSV' para adicionar dados.");
-                    }
-                } else {
-                    showError("Nenhum dado encontrado", "Não foi possível encontrar o nó 'clientes'. Use o botão 'Importar CSV' para criar o nó e adicionar dados.");
-                }
-            }, (error) => {
-                console.error("Erro ao buscar dados do Firebase: ", error);
-                handleFirebaseError(error);
-            });
-        }
-
-        function populateFilters(data) {
-            const produtos = new Set();
-            const statuses = new Set();
-            data.forEach(row => {
-                // CORREÇÃO: Procura pela chave do produto independentemente de ser maiúscula/minúscula
-                const produtoKey = Object.keys(row).find(key => key.toUpperCase() === 'PRODUTO');
-                if (produtoKey && row[produtoKey]) {
-                    produtos.add(row[produtoKey]);
-                }
-                
-                // CORREÇÃO: Procura pela chave do status independentemente de ser maiúscula/minúscula
-                const statusKey = Object.keys(row).find(key => key.toUpperCase() === 'STATUS');
-                if (statusKey && row[statusKey]) {
-                    statuses.add(row[statusKey]);
-                }
-            });
-
-            produtoFilter.innerHTML = '<option value="">Todos os Produtos</option>';
-            [...produtos].sort().forEach(produto => {
-                const option = document.createElement('option');
-                option.value = produto;
-                option.textContent = produto;
-                produtoFilter.appendChild(option);
-            });
-
-            statusFilter.innerHTML = '<option value="">Todos os Status</option>';
-            [...statuses].sort().forEach(status => {
-                const option = document.createElement('option');
-                option.value = status;
-                option.textContent = status;
-                statusFilter.appendChild(option);
-            });
-        }
-
-
-        function applyAllFilters() {
-            const searchTerm = searchInput.value.toLowerCase();
-            const selectedProduto = produtoFilter.value;
-            const selectedStatus = statusFilter.value;
-
-            let filteredData = originalData.filter(row => {
-                const produtoKey = Object.keys(row).find(key => key.toUpperCase() === 'PRODUTO');
-                const statusKey = Object.keys(row).find(key => key.toUpperCase() === 'STATUS');
-
-                const searchMatch = !searchTerm || Object.values(row).some(value =>
-                    String(value).toLowerCase().includes(searchTerm)
-                );
-                const produtoMatch = !selectedProduto || (produtoKey && row[produtoKey] === selectedProduto);
-                const statusMatch = !selectedStatus || (statusKey && row[statusKey] === selectedStatus);
-                
-                return searchMatch && produtoMatch && statusMatch;
-            });
-
-            if (sortColumn) {
-                filteredData.sort((a, b) => {
-                    let valA = a[sortColumn] ? String(a[sortColumn]).toUpperCase() : '';
-                    let valB = b[sortColumn] ? String(b[sortColumn]).toUpperCase() : '';
-                    if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
-                    if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
-                    return 0;
-                });
-            }
-
-            renderTable(filteredData);
-        }
-        
-        function handleFileImport(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const csvData = e.target.result;
-                    const parsedData = parseCSV(csvData);
-                    if (parsedData.length === 0) throw new Error("O arquivo CSV está vazio ou em formato inválido.");
-                    uploadDataToFirebase(parsedData);
-                } catch (error) {
-                    importStatus.textContent = `Erro: ${error.message}`;
-                }
-            };
-            reader.readAsText(file, 'UTF-8');
-            event.target.value = '';
-        }
-        
-        function parseCSV(data) {
-            data = data.trim();
-            const delimiter = data.includes(';') ? ';' : ',';
-            const lines = data.split(/\r?\n/);
-            if (lines.length < 2) return [];
-            
-            const headers = lines[0].split(delimiter).map(h => h.trim().replace(/"/g, '').toUpperCase());
-            const rows = [];
-
-            for (let i = 1; i < lines.length; i++) {
-                if (lines[i].trim() === '') continue;
-                const values = lines[i].split(delimiter).map(v => v.trim().replace(/"/g, ''));
-                if (values.length === headers.length) {
-                    let rowObject = {};
-                    headers.forEach((header, index) => {
-                        rowObject[header] = values[index];
-                    });
-                    rows.push(rowObject);
-                }
-            }
-            return rows;
-        }
-
-        function uploadDataToFirebase(data) {
-            importStatus.textContent = 'Enviando dados para o Firebase...';
-            database.ref('clientes').set(data)
-                .then(() => {
-                    importStatus.textContent = 'Dados importados com sucesso!';
-                    setTimeout(() => importStatus.textContent = '', 5000);
-                })
-                .catch(error => {
-                    console.error("Erro ao enviar dados para o Firebase: ", error);
-                    handleFirebaseError(error);
-                    importStatus.textContent = 'Falha na importação. Verifique as permissões.';
-                });
-        }
-
-        function handleFirebaseError(error) {
-            let title = `Erro: ${error.code}`;
-            let message = `Ocorreu um erro ao comunicar com o Firebase.`;
-            let isHtml = false;
-            let showReload = false;
-
-            if (error.code === 'PERMISSION_DENIED') {
-                title = 'Ação Necessária: Permissão Negada';
-                isHtml = true;
-                showReload = true;
-                message = `<div class="text-left text-sm space-y-3">
-                            <p>Suas regras de segurança do Firebase estão bloqueando o acesso. Para ler e importar dados, você precisa permitir leitura e escrita.</p>
-                            <p class="font-semibold">Siga estes passos:</p>
-                            <ol class="list-decimal list-inside bg-gray-100 p-4 rounded-md text-gray-800">
-                                <li>Abra o <a href="https://console.firebase.google.com/project/${firebaseConfig.projectId}/database/realtimedb/rules" target="_blank" class="text-blue-600 underline font-semibold">Console do Firebase</a> (link direto).</li>
-                                <li>Substitua as regras por este código:</li>
-                            </ol>
-                            <pre class="bg-gray-800 text-white text-left p-3 rounded mt-2 text-xs overflow-x-auto"><code>{\n  "rules": {\n    ".read": true,\n    ".write": true\n  }\n}</code></pre>
-                            <p class="font-bold mt-3 text-amber-700">Atenção: Esta regra é para desenvolvimento. Em produção, use regras seguras com autenticação.</p>
-                            <p>Após salvar, clique em "Tentar Novamente".</p>
-                           </div>`;
-            }
-            showError(title, message, isHtml, showReload);
-        }
-        
-        function showError(title, message, isHtml = false, showReload = false) {
-             loaderContainer.classList.add('hidden');
-             tableWrapper.classList.add('hidden');
-             errorTitleEl.textContent = title;
-             errorMessageEl[isHtml ? 'innerHTML' : 'textContent'] = message;
-             reloadButton.classList.toggle('hidden', !showReload);
-             errorContainer.classList.remove('hidden');
-        }
-
-        function renderTable(data) {
-            const tableBody = document.getElementById('dataTable');
-            const tableHead = document.querySelector('thead tr');
-            
-            tableBody.innerHTML = '';
-            tableHead.innerHTML = '';
-            
-            noResultsDiv.classList.add('hidden');
-            if (data.length === 0 && originalData.length > 0) {
-                 noResultsDiv.classList.remove('hidden');
-            }
-            
-            fixedHeaders.forEach(header => {
-                const th = document.createElement('th');
-                th.className = 'px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer select-none';
-                th.textContent = header.replace(/_/g, ' ');
-                const icon = document.createElement('span');
-                icon.className = 'ml-2';
-                if (sortColumn === header) icon.textContent = sortDirection === 'asc' ? '▲' : '▼';
-                th.appendChild(icon);
-                th.addEventListener('click', () => handleSort(header));
-                tableHead.appendChild(th);
-            });
-
-            data.forEach(row => {
-                const tr = document.createElement('tr');
-                tr.className = 'hover:bg-gray-50 transition-colors';
-                fixedHeaders.forEach(header => {
-                    const td = document.createElement('td');
-                    td.className = 'px-6 py-4 whitespace-nowrap text-sm';
-                    let content = row[header] || '';
-                    if (header.toUpperCase() === 'STATUS') {
-                        const statusClass = String(content).toUpperCase() === 'ATIVO' 
-                            ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
-                        td.innerHTML = `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">${content}</span>`;
-                    } else {
-                        td.textContent = content;
-                    }
-                    tr.appendChild(td);
-                });
-                tableBody.appendChild(tr);
-            });
-            updateRowCount(data.length);
-        }
-
-        function handleSort(column) {
-            if (sortColumn === column) {
-                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-            } else {
-                sortColumn = column;
-                sortDirection = 'asc';
-            }
-            applyAllFilters();
-        }
-        
-        function updateRowCount(count) {
-            const rowCountEl = document.getElementById('rowCount');
-            const total = originalData.length;
-            if (total > 0 && count !== total) {
-                 rowCountEl.textContent = `${count} de ${total}`;
-            } else {
-                 rowCountEl.textContent = `${total} Registros`;
-            }
-        }
+        clientPhoneInput.addEventListener('input', (e) => {
+            let x = e.target.value.replace(/\D/g, '').match(/(\d{0,2})(\d{0,5})(\d{0,4})/);
+            if (!x) return;
+            e.target.value = !x[2] ? x[1] : '(' + x[1] + ') ' + x[2] + (x[3] ? '-' + x[3] : '');
+        });
     </script>
 </body>
 </html>
